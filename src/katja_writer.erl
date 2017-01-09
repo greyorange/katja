@@ -160,7 +160,9 @@ handle_call(_Request, _From, State) ->
 
 % @hidden
 handle_cast({send_message, Transport, _Type, Data}, State) ->
-  Msg = create_message(Data),
+  StartTime = os:timestamp(),
+  NewData = receive_and_merge([Data], StartTime),
+  Msg = create_message(NewData),
   {_Reply, State2} = send_message(Transport, Msg, State),
   {noreply, State2};
 handle_cast(_Msg, State) ->
@@ -180,6 +182,25 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 % Private
+
+receive_and_merge(AccData, _StartTime) when length(AccData) >= 500 ->
+    AccData;
+receive_and_merge(AccData, StartTime) ->
+    Time = os:timestamp(),
+    TimeLeft = timer:now_diff(Time, StartTime) div 1000, %% ms
+    if
+        TimeLeft > 1000 ->
+            AccData;
+        true ->
+            receive
+                {'$gen_cast', {send_message, _, _, Data}} ->
+                    receive_and_merge([Data | AccData], StartTime)
+            after
+                TimeLeft ->
+                    AccData
+            end
+    end.
+
 
 -spec should_send_data(katja:sample_rate()) -> boolean().
 should_send_data(1.0) ->

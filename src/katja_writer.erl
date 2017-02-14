@@ -187,9 +187,9 @@ receive_and_merge(AccData, _StartTime) when length(AccData) >= 500 ->
     AccData;
 receive_and_merge(AccData, StartTime) ->
     Time = os:timestamp(),
-    TimeLeft = timer:now_diff(Time, StartTime) div 1000, %% ms
+    TimeLeft = 1000 - timer:now_diff(Time, StartTime) div 1000, %% ms
     if
-        TimeLeft > 1000 ->
+        TimeLeft =< 0 ->
             AccData;
         true ->
             receive

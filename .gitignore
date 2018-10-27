@@ -12,3 +12,5 @@ erl_crash.dump
 *.trace
 
 include/katja_pb.hrl
+src/katja_pb.erl
+_build

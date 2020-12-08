@@ -183,8 +183,24 @@ code_change(_OldVsn, State, _Extra) ->
 
 % Private
 
+drop_mq() ->
+    receive
+        _Data ->
+            drop_mq()
+    after 0 ->
+        ok
+    end.
+
+flush_if_necessary(T) ->
+    {_, L} = process_info(self(), message_queue_len),
+    case L > T of
+        true -> drop_mq();
+        false -> ok
+    end.
+
 receive_and_merge(AccData, _StartTime) when length(AccData) >= 500 ->
-    AccData;
+  flush_if_necessary(1000000),
+  AccData;
 receive_and_merge(AccData, StartTime) ->
     Time = os:timestamp(),
     TimeLeft = 1000 - timer:now_diff(Time, StartTime) div 1000, %% ms
